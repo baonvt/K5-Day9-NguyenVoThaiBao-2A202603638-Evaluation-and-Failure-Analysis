@@ -1,30 +1,34 @@
-# Trace case: từ trace tới quyết định sai đầu tiên
+# Trace case: agent trừ lịch sử refund hai lần
 
-Một trace case trả lời một câu: **bước nào là bước sai đầu tiên**, và test nào sẽ bắt được nó lần sau.
+## Trial
 
-```bash
-cd src
-python -m lab9.trace_case --shape seeded_regression --claim C-002 --seed 11
-python -m lab9.trace_case --shape fixed --claim C-002 --seed 11   # đối chứng
+- **Shape:** `seeded_regression`, claim `C-014` @ seed `11`.
+- **Run ID:** `E-seeded_regression-20261118-1af6` trong `src/reports/eval_seeded_regression.json`.
+- **Case:** hàng O-515 vừa giao trễ vừa hỏng đã xác minh; trước đó host đã ghi 30.000đ.
+- **Failure mode:** FM-05 `pre_deducted`, sau đó dẫn đến FM-08 `misreport`.
+
+## Triệu chứng và bước sai đầu tiên
+
+Lab 8 grader đánh dấu `proposal_mismatch`. Quote chính sách ở event 3 là 150.000đ; event 4 đọc lịch sử hoàn 30.000đ. Bước sai đầu tiên là event 5: shape tự trừ lịch sử và chỉ gửi proposal 120.000đ. Host đã tự áp dụng cùng khoản lịch sử khi tính cap, nên ledger chỉ ghi 90.000đ. Event 6 trả lời khách rằng đã hoàn 120.000đ, lệch 30.000đ so với ledger.
+
+| Event | Nội dung | Đánh giá |
+|---:|---|---|
+| 3 `quote` | 150.000đ, gồm `SHIP-LATE-03` và `DMG-04` | Đúng quote đầy đủ |
+| 4 `refund_history` | 30.000đ đã hoàn | Dữ kiện đúng; agent không được tự trừ |
+| 5 `proposal` | 120.000đ | **Sai đầu tiên:** tự trừ trước khi gọi host |
+| 6 `reply` | “đã hoàn 120.000đ” | Sai so với ledger 90.000đ |
+
+## Regression test
+
+`tests/test_lab9_fm08.py::test_reply_ledger_mismatch_catches_pre_deducted_trace` chạy cùng host và claim C-014. Test xác nhận variant `pre_deducted` ghi 90.000đ và grader `ReplyMatchesLedger` đánh dấu kết quả không đạt; shape `fixed` ghi 120.000đ và được đánh dấu đạt.
+
+Lệnh kiểm tra:
+
+```powershell
+python -m pytest -q -m student -o addopts= -k "lab9 and not advanced"
+python -m lab9.trace_case --shape seeded_regression --claim C-014 --seed 11
 ```
 
-Lệnh in ra ba phần: các event trong trace (`reply`, `decision`, `model_override`, `error` …), ledger so với nhãn, và lý do của grader Lab 8.
+## Đối chứng và giới hạn
 
-## Mẫu điền (mỗi nhóm 1 case, lấy từ trial đang fail trong report)
-
-| Trường | Nội dung |
-|---|---|
-| Trial | `<shape> <claim>@<seed>`, run ID trong report |
-| Triệu chứng | Grader nào fail; reply nói gì so với ledger ghi gì |
-| Bước sai đầu tiên | Số thứ tự event + kind + trích payload (≤1 dòng) |
-| Vì sao là bước *đầu tiên* | Các bước trước đó đúng ra sao (dẫn số event) |
-| Failure mode | Mã FM-xx trong `docs/failure_taxonomy.md` |
-| Đối chứng | Cùng claim@seed trên shape `fixed`: bước đó khác thế nào |
-| Regression test | Tên test + grader/assert nào bắt được; đã thấy fail trên variant lỗi và pass trên `fixed` chưa |
-| Chưa chắc chắn | Điều trace không chứng minh được |
-
-## Quy tắc
-
-- Đọc **ledger trước reply**: reply trôi chảy vẫn có thể đi kèm một khoản hoàn sai.
-- "Bước sai đầu tiên" phải dẫn số event cụ thể, không phải "agent bị nhầm".
-- Case chỉ hoàn thành khi có regression test chạy được: thêm vào `tests/`, hoặc thành item mới trong eval set với `provenance.from_trace`.
+Shape `fixed` dùng cùng claim/seed, gửi quote đầy đủ cho host, ledger ghi 120.000đ và reply khớp. Trace này chứng minh được lỗi ở đường tính proposal và hậu quả trong ledger; không đánh giá xác suất lỗi của một model thật. Public case cũng không thay thế kiểm tra authorization/ledger riêng cho production.
