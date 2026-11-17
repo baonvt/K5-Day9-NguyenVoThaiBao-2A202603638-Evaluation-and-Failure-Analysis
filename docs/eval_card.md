@@ -7,7 +7,7 @@ Card cho eval set v1, kết quả chạy lại bằng MockLLM trên cùng 14 ite
 - **Ngày chạy:** 2026-11-18
 - **Nhánh:** `starter/d09`
 - **Run ID:** baseline `E-swarm-20261118-1af6`; đối chứng `E-fixed-20261118-1af6`; mutation `E-seeded_regression-20261118-1af6`.
-- **Code:** Lab 8 source từ repo gốc Day 8; `src/lab8/` không chỉnh sửa. Grader và metric spec ở nhánh `starter/d09`.
+- **Code commit:** `8597a41db876286be17943955552058ec87814c9` (nhánh `starter/d09`). Lab 8 source lấy nguyên từ Day 8 gốc commit `034c6c421c198dae67a9211d15e2587d5a378972`; `src/lab8/` không chỉnh sửa.
 - **Eval set:** v1, SHA-12 `1af609b51a14`; 14 item × seeds 11/22/33/44/55; nhãn tách trong `src/data/eval/labels_v1.json`.
 - **Metric spec:** `src/config/metric_spec.yaml` version 1.0; bootstrap 1.000 resample, percentile, confidence 95%, rng 2027.
 - **Judge:** replay từ `judge_tone_public.csv` và `judge_helpful_public.csv`; không gọi model ngoài.
